@@ -8,7 +8,6 @@
 #define MIN_NO GRAUMINIMO - 1
 #define MAX_NO 2 * (GRAUMINIMO)-1
 #define END_POINT 4 * (GRAUMINIMO)-1
-#define TAM_TOTAL MAX_NO + END_POINT
 
 typedef struct {
   int chave;
@@ -23,7 +22,7 @@ typedef struct {
 
 typedef struct {
   int ocupados;
-  No nos[TAM_TOTAL];
+  No nos[END_POINT];
 } RegistroArquivoArvore;
 
 typedef struct {
@@ -79,7 +78,7 @@ void setRaiz(Controle *c, FILE **arvore) {
   if (c->proximoDadosLivre == 0) {
     RegistroArquivoArvore raiz;
     raiz.ocupados = 0;
-    for (int i = 0; i < TAM_TOTAL; i++) {
+    for (int i = 0; i < END_POINT; i++) {
       raiz.nos[i].apontador = -1;
       raiz.nos[i].chave = -1;
     }
@@ -161,12 +160,12 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
 
   RegistroArquivoArvore novoFilho;
   int index = 0;
-  for (int i = (mid + 1) * 2; i < TAM_TOTAL; i++) {
+  for (int i = (mid + 1) * 2; i < END_POINT; i++) {
     novoFilho.nos[index] = filho.nos[i];
     index++;
   }
 
-  for (int i = (mid * 2) + 1; i <= TAM_TOTAL; i++) {
+  for (int i = (mid * 2) + 1; i <= END_POINT; i++) {
     filho.nos[i].apontador = -1;
     filho.nos[i].chave = -1;
   }
@@ -204,7 +203,7 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
   int deslocamento = -2;
   int deslocamentoPai = -1;
   int noAtual = c->deslocamentoRaiz;
-  while (deslocamento != -2) {
+  while (deslocamento == -2) {
     if (registro.ocupados == MAX_NO) {
       splitNode(arvore, c, noAtual, deslocamentoPai);
     }
@@ -290,7 +289,7 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
   int deslocamento = -2;
   int deslocamentoPai = -1;
   int noAtual = c->deslocamentoRaiz;
-  while (deslocamento != -2) {
+  while (deslocamento == -2) {
     if (registro.ocupados == MAX_NO) {
       splitNode(arvore, c, noAtual, deslocamentoPai);
     }
@@ -417,8 +416,8 @@ int main(void) {
     }
   } while (opcao != 'e');
   // Salvando alterações da struct de controle
-  fseek(pont_arvore, sizeof(Controle), SEEK_SET);
-  fwrite(&controle, sizeof(Controle), 1, pont_arvore);
+  fseek(pont_arvore, sizeof(controle), SEEK_SET);
+  fwrite(&controle, sizeof(controle), 1, pont_arvore);
 
   fechaArquivo(&pont_dados);
   fechaArquivo(&pont_arvore);
