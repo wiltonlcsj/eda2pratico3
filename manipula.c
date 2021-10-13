@@ -381,6 +381,47 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
   imprimir(r);
 }
 
+void printNo(RegistroArquivoArvore noarvore, int *numero) {
+  printf("No: %d:", *numero);
+  for (int i = 0; i < (noarvore.ocupados * 2) + 1; i++) {
+    No no = noarvore.nos[i];
+    if (i % 2 == 0) {
+      char proximo[6] = "null";
+      if (no.apontador != -1) {
+        sprintf(proximo, "%d", *numero);
+      }
+
+      *numero = *numero + 1;
+      printf(" apontador: %s: ", proximo);
+      continue;
+    }
+
+    printf(" chave: %d", no.chave);
+  }
+}
+
+void imprimeArvore(FILE **dados, FILE **arvore, Controle *c) {
+  RegistroArquivoArvore arvoreRaiz;
+
+  fseek(*arvore, sizeof(c) + c->deslocamentoRaiz * sizeof(arvoreRaiz), SEEK_SET);
+  fread(&arvoreRaiz, sizeof(arvore), 1, *arvore);
+
+  int nos = 1;
+  if (arvoreRaiz.ocupados == 0) {
+    printf("árvore vazia");
+    return;
+  }
+
+  printNo(arvoreRaiz, &nos);
+  nos++;
+}
+
+void imprimeOrdem(FILE **dados, FILE **arvore, Controle *c) {
+}
+
+void taxaDeOcupacao(FILE **dados, FILE **arvore, Controle *c) {
+}
+
 int main(void) {
   FILE *pont_dados;
   FILE *pont_arvore;
@@ -417,14 +458,17 @@ int main(void) {
       }
       case 'p': {
         // Deve imprimir a arvore
+        imprimeArvore(&pont_dados, &pont_arvore, &controle);
         break;
       }
       case 'o': {
         // Deve imprimir as chaves em ordem crescente
+        imprimeOrdem(&pont_dados, &pont_arvore, &controle);
         break;
       }
       case 't': {
         // Deve imprimir a taxa de ocupação da arvore
+        taxaDeOcupacao(&pont_dados, &pont_arvore, &controle);
         break;
       }
       default:
