@@ -94,14 +94,18 @@ void setRaiz(Controle *c, FILE **arvore) {
   }
 }
 
-void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
-               int deslocamentoPai) {
+void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamentoPai) {
   RegistroArquivoArvore pai;
   if (deslocamentoPai != -1) {
     fseek(*arvore, sizeof(c) + deslocamentoPai * sizeof(pai), SEEK_SET);
     fread(&pai, sizeof(pai), 1, *arvore);
   } else {
     deslocamentoPai = c->proximoArvoreLivre;
+    for (int i = 0; i < END_POINT; i++) {
+      pai.nos[i].apontador = -1;
+      pai.nos[i].chave = -1;
+    }
+    pai.ocupados = 0;
     c->deslocamentoRaiz = deslocamentoPai;
     c->proximoArvoreLivre++;
   }
@@ -110,7 +114,8 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
   fseek(*arvore, sizeof(c) + deslocamentoFilho * sizeof(filho), SEEK_SET);
   fread(&filho, sizeof(filho), 1, *arvore);
 
-  int mid = ceil(MAX_NO / 2) - 1;
+  double maxNo = MAX_NO;
+  int mid = ceil(maxNo / 2) - 1;
   int deslocamentoNovoFilho = c->proximoArvoreLivre;
   c->proximoArvoreLivre++;
 
@@ -124,7 +129,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
 
   int i = (pai.ocupados * 2) - 1;
   int z = i;
-  while(z >= 1){
+  while (z >= 1) {
     if (filho.nos[(mid * 2) + 1].chave > pai.nos[z].chave) {
       break;
     }
@@ -139,7 +144,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
     chave = i + 2;
   } else {
     // Está no meio ou novo menor numero
-    for (int j = (pai.ocupados * 2)-1; j >= i; j -= 2) {
+    for (int j = (pai.ocupados * 2) - 1; j >= i; j -= 2) {
       pai.nos[j + 2] = pai.nos[j];
       pai.nos[j + 1] = pai.nos[j - 1];
     }
@@ -152,15 +157,23 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
   pai.ocupados++;
 
   RegistroArquivoArvore novoFilho;
+  novoFilho.ocupados = 0;
+  for (int i = 0; i < END_POINT; i++) {
+    novoFilho.nos[i].apontador = -1;
+    novoFilho.nos[i].chave = -1;
+  }
+
   int index = 0;
   for (int i = (mid + 1) * 2; i < END_POINT; i++) {
     novoFilho.nos[index] = filho.nos[i];
+    novoFilho.ocupados++;
     index++;
   }
 
   for (int i = (mid * 2) + 1; i <= END_POINT; i++) {
     filho.nos[i].apontador = -1;
     filho.nos[i].chave = -1;
+    filho.ocupados++;
   }
 
   // Atualizando pai na memória
