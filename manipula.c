@@ -124,7 +124,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
   direita.chave = -1;
 
   int i = (pai.ocupados * 2) - 1;
-  for (i; i >= 1; i - 2) {
+  for (i; i >= 1; i -= 2) {
     if (filho.nos[(mid * 2) + 1].chave > pai.nos[i].chave) {
       break;
     }
@@ -138,7 +138,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
   } else if (i < 0) {
     // Novo menor numero
     int index = (pai.ocupados * 2);
-    for (int j = index; j >= 1; j - 2) {
+    for (int j = index; j >= 1; j -= 2) {
       pai.nos[j + 2] = pai.nos[j];
       pai.nos[j + 1] = pai.nos[j - 1];
     }
@@ -146,7 +146,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho,
   } else {
     // Está no meio
     int index = (pai.ocupados * 2);
-    for (int j = index; j > i; j - 2) {
+    for (int j = index; j > i; j -= 2) {
       pai.nos[j + 2] = pai.nos[j];
       pai.nos[j + 1] = pai.nos[j - 1];
     }
@@ -208,53 +208,53 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
       splitNode(arvore, c, noAtual, deslocamentoPai);
     }
 
-    int i = (registro.ocupados * 2) - 1;
-    for (i; i >= 1; i - 2) {
-      if (registro.nos[i].chave >= chave) {
+    int indice1 = (registro.ocupados * 2) - 1;
+    for (indice1; indice1 >= 1; indice1 -= 2) {
+      if (registro.nos[indice1].chave >= chave) {
         break;
       }
     }
 
-    if (registro.nos[i].chave == chave) {
+    if (registro.nos[indice1].chave == chave) {
       deslocamento = -1;
       continue;
     }
 
-    int proximoNo = registro.nos[i + 1].apontador;
-    if (registro.nos[i].chave > chave) {
-      proximoNo = registro.nos[i - 1].apontador;
+    int proximoNo = registro.nos[indice1 + 1].apontador;
+    if (registro.nos[indice1].chave > chave) {
+      proximoNo = registro.nos[indice1 - 1].apontador;
     }
 
     if (proximoNo == -1) {
       deslocamento = c->proximoDadosLivre;
 
-      int j = (registro.ocupados * 2) - 1;
-      for (j; j >= 1; j - 2) {
-        if (registro.nos[j].chave < chave) {
+      int indice2 = (registro.ocupados * 2) - 1;
+      for (indice2; indice2 >= 1; indice2 -= 2) {
+        if (registro.nos[indice2].chave < chave) {
           break;
         }
       }
 
       int indice;
-      if (j == (registro.ocupados * 2) - 1) {
+      if (indice2 == (registro.ocupados * 2) - 1) {
         // Novo maior numero
-        indice = j + 2;
-      } else if (j < 0) {
+        indice = indice2 + 2;
+      } else if (indice2 < 0) {
         // Novo menor numero
         int index = (registro.ocupados * 2);
-        for (int k = index; k >= 1; k - 2) {
-          registro.nos[k + 2] = registro.nos[k];
-          registro.nos[k + 1] = registro.nos[k - 1];
+        for (int indice3 = index; indice3 >= 1; indice3 -= 2) {
+          registro.nos[indice3 + 2] = registro.nos[indice3];
+          registro.nos[indice3 + 1] = registro.nos[indice3 - 1];
         }
         indice = 1;
       } else {
         // Está no meio
         int index = (registro.ocupados * 2);
-        for (int k = index; k > i; k - 2) {
-          registro.nos[k + 2] = registro.nos[k];
-          registro.nos[k + 1] = registro.nos[k - 1];
+        for (int indice4 = index; indice4 > indice1; indice4 -= 2) {
+          registro.nos[indice4 + 2] = registro.nos[indice4];
+          registro.nos[indice4 + 1] = registro.nos[indice4 - 1];
         }
-        chave = i;
+        indice = indice1;
       }
 
       No novoNo;
@@ -286,6 +286,11 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
     return -1;
   }
 
+  for (int i = 0; i < END_POINT; i++) {
+    printf("pos: %d, chave: %d, pont: %d\n", i, registro.nos[i].chave,
+           registro.nos[i].apontador);
+  }
+
   int deslocamento = -2;
   int deslocamentoPai = -1;
   int noAtual = c->deslocamentoRaiz;
@@ -295,7 +300,7 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
     }
 
     int i = (registro.ocupados * 2) - 1;
-    for (i; i >= 1; i - 2) {
+    for (i; i >= 1; i -= 2) {
       if (registro.nos[i].chave >= chave) {
         break;
       }
