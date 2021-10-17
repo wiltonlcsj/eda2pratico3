@@ -1,5 +1,4 @@
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,25 +9,25 @@
 #define END_POINT 4 * (GRAUMINIMO)-1
 
 typedef struct {
-  int chave;
-  char nome[20];
-  int idade;
+    int chave;
+    char nome[20];
+    int idade;
 } RegistroArquivoDados;
 
 typedef struct {
-  int chave;
-  int apontador;
+    int chave;
+    int apontador;
 } No;
 
 typedef struct {
-  int ocupados;
-  No nos[END_POINT];
+    int ocupados;
+    No nos[END_POINT];
 } RegistroArquivoArvore;
 
 typedef struct {
-  int proximoDadosLivre;
-  int proximoArvoreLivre;
-  int deslocamentoRaiz;
+    int proximoDadosLivre;
+    int proximoArvoreLivre;
+    int deslocamentoRaiz;
 } Controle;
 
 void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
@@ -51,8 +50,8 @@ void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
       c->proximoArvoreLivre = 0;
       c->proximoDadosLivre = 0;
       c->deslocamentoRaiz = -1;
-      fseek(*arvore, sizeof(c), SEEK_SET);
-      if (!fwrite(c, sizeof(c), 1, *arvore)) {
+      fseek(*arvore, 0, SEEK_SET);
+      if (!fwrite(c, sizeof(*c), 1, *arvore)) {
         c->proximoArvoreLivre = -1;
         return;
       }
@@ -61,17 +60,8 @@ void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
     }
   }
 
-  fseek(*arvore, sizeof(c), SEEK_SET);
-  fread(c, sizeof(c), 1, *arvore);
-}
-
-void fechaArquivo(FILE **arquivo) { fclose(*arquivo); }
-
-void imprimir(RegistroArquivoDados registro) {
-  printf("chave: %d", registro.chave);
-  printf("\n%s", registro.nome);
-  printf("\n%d", registro.idade);
-  printf("\n");
+  fseek(*arvore, 0, SEEK_SET);
+  fread(c, sizeof(*c), 1, *arvore);
 }
 
 void setRaiz(Controle *c, FILE **arvore) {
@@ -83,7 +73,7 @@ void setRaiz(Controle *c, FILE **arvore) {
       raiz.nos[i].chave = -1;
     }
 
-    fseek(*arvore, sizeof(c), SEEK_SET);
+    fseek(*arvore, sizeof(*c), SEEK_SET);
     if (!fwrite(&raiz, sizeof(raiz), 1, *arvore)) {
       c->deslocamentoRaiz = -1;
       return;
@@ -94,10 +84,19 @@ void setRaiz(Controle *c, FILE **arvore) {
   }
 }
 
+void fechaArquivo(FILE **arquivo) { fclose(*arquivo); }
+
+void imprimir(RegistroArquivoDados registro) {
+  printf("chave: %d", registro.chave);
+  printf("\n%s", registro.nome);
+  printf("\n%d", registro.idade);
+  printf("\n");
+}
+
 void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamentoPai) {
   RegistroArquivoArvore pai;
   if (deslocamentoPai != -1) {
-    fseek(*arvore, sizeof(c) + deslocamentoPai * sizeof(pai), SEEK_SET);
+    fseek(*arvore, sizeof(*c) + deslocamentoPai * sizeof(pai), SEEK_SET);
     fread(&pai, sizeof(pai), 1, *arvore);
   } else {
     deslocamentoPai = c->proximoArvoreLivre;
@@ -111,7 +110,7 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamen
   }
 
   RegistroArquivoArvore filho;
-  fseek(*arvore, sizeof(c) + deslocamentoFilho * sizeof(filho), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + deslocamentoFilho * sizeof(filho), SEEK_SET);
   fread(&filho, sizeof(filho), 1, *arvore);
 
   double maxNo = MAX_NO;
@@ -177,28 +176,28 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamen
   }
 
   // Atualizando pai na memória
-  fseek(*arvore, sizeof(c) + deslocamentoPai * sizeof(pai), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + deslocamentoPai * sizeof(pai), SEEK_SET);
   fwrite(&pai, sizeof(pai), 1, *arvore);
 
   // Atualizando filho na memória
-  fseek(*arvore, sizeof(c) + deslocamentoFilho * sizeof(filho), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + deslocamentoFilho * sizeof(filho), SEEK_SET);
   fwrite(&filho, sizeof(filho), 1, *arvore);
 
   // Criando novo filho na memória
-  fseek(*arvore, sizeof(c) + deslocamentoNovoFilho * sizeof(novoFilho), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + deslocamentoNovoFilho * sizeof(novoFilho), SEEK_SET);
   fwrite(&novoFilho, sizeof(novoFilho), 1, *arvore);
 }
 
 int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
   RegistroArquivoArvore registro;
-  fseek(*arvore, sizeof(c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
   fread(&registro, sizeof(registro), 1, *arvore);
 
   if (registro.ocupados == 0) {
     registro.nos[1].chave = chave;
     registro.nos[1].apontador = c->proximoDadosLivre;
     registro.ocupados++;
-    fseek(*arvore, sizeof(c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
+    fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
     fwrite(&registro, sizeof(registro), 1, *arvore);
     return 0;
   }
@@ -267,14 +266,14 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
       registro.nos[indice] = novoNo;
       registro.ocupados++;
 
-      fseek(*arvore, sizeof(c) + noAtual * sizeof(registro), SEEK_SET);
+      fseek(*arvore, sizeof(*c) + noAtual * sizeof(registro), SEEK_SET);
       fwrite(&registro, sizeof(registro), 1, *arvore);
       continue;
     }
 
     deslocamentoPai = noAtual;
     noAtual = proximoNo;
-    fseek(*arvore, sizeof(c) + proximoNo * sizeof(registro), SEEK_SET);
+    fseek(*arvore, sizeof(*c) + proximoNo * sizeof(registro), SEEK_SET);
     fread(&registro, sizeof(registro), 1, *arvore);
   }
 
@@ -283,7 +282,7 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
 
 int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
   RegistroArquivoArvore registro;
-  fseek(*arvore, sizeof(c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
   fread(&registro, sizeof(registro), 1, *arvore);
 
   if (registro.ocupados == 0) {
@@ -334,7 +333,7 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
 
     deslocamentoPai = noAtual;
     noAtual = proximoNo;
-    fseek(*arvore, sizeof(c) + proximoNo * sizeof(registro), SEEK_SET);
+    fseek(*arvore, sizeof(*c) + proximoNo * sizeof(registro), SEEK_SET);
     fread(&registro, sizeof(registro), 1, *arvore);
   }
 
@@ -381,45 +380,25 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
   imprimir(r);
 }
 
-void printNo(RegistroArquivoArvore noarvore, int *numero) {
-  printf("No: %d:", *numero);
-  for (int i = 0; i < (noarvore.ocupados * 2) + 1; i++) {
-    No no = noarvore.nos[i];
-    if (i % 2 == 0) {
-      char proximo[6] = "null";
-      if (no.apontador != -1) {
-        sprintf(proximo, "%d", *numero);
-      }
-
-      *numero = *numero + 1;
-      printf(" apontador: %s: ", proximo);
-      continue;
-    }
-
-    printf(" chave: %d", no.chave);
-  }
-}
-
-void imprimeArvore(FILE **dados, FILE **arvore, Controle *c) {
-  RegistroArquivoArvore arvoreRaiz;
-
-  fseek(*arvore, sizeof(c) + c->deslocamentoRaiz * sizeof(arvoreRaiz), SEEK_SET);
-  fread(&arvoreRaiz, sizeof(arvore), 1, *arvore);
-
-  int nos = 1;
-  if (arvoreRaiz.ocupados == 0) {
-    printf("árvore vazia");
-    return;
-  }
-
-  printNo(arvoreRaiz, &nos);
-  nos++;
-}
+void imprimeArvore(FILE **dados, FILE **arvore, Controle *c) {}
 
 void imprimeOrdem(FILE **dados, FILE **arvore, Controle *c) {
 }
 
 void taxaDeOcupacao(FILE **dados, FILE **arvore, Controle *c) {
+  RegistroArquivoArvore arvoreRaiz;
+
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(arvoreRaiz), SEEK_SET);
+  fread(&arvoreRaiz, sizeof(arvore), 1, *arvore);
+
+  if (arvoreRaiz.ocupados == 0) {
+    printf("árvore vazia\n");
+    return;
+  }
+
+  float qntRegistros = (float) 0;
+  float qntNos = (float) 0;
+  printf("taxa de ocupacao: %.1f", qntRegistros / (qntNos * MAX_NO));
 }
 
 int main(void) {
@@ -476,7 +455,7 @@ int main(void) {
     }
   } while (opcao != 'e');
   // Salvando alterações da struct de controle
-  fseek(pont_arvore, sizeof(controle), SEEK_SET);
+  fseek(pont_arvore, 0, SEEK_SET);
   fwrite(&controle, sizeof(controle), 1, pont_arvore);
 
   fechaArquivo(&pont_dados);
