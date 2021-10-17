@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "queue.h"
 
 #define GRAUMINIMO 2
 #define MIN_NO GRAUMINIMO - 1
@@ -404,7 +405,48 @@ void imprimeNo(int deslocamento, FILE **arvore){
   }
 }
 
-void imprimeArvore(FILE **arvore, Controle *c) {}
+void imprimeNoLargura(int index, int deslocamento, struct Queue *queue, FILE **arvore) {
+RegistroArquivoArvore no;
+
+  fseek(*arvore, sizeof(Controle) + deslocamento * sizeof(no), SEEK_SET);
+  fread(&no, sizeof(no), 1, *arvore);
+
+  printf("No: %d:", index);
+  int apontadores = index;
+  for (int i = 0; i <= no.ocupados * 2; i++) {
+    if (no.nos[i].chave == -1) {
+      char *apontador = (char*) malloc(100);
+      
+      if (no.nos[i].apontador != -1) {
+        apontadores++;
+        snprintf(apontador, 100, "%d", apontadores);
+        enqueue(queue, no.nos[i].apontador);
+      } else {
+        strcpy(apontador, "null");
+      }
+
+      printf(" apontador: %s", apontador);
+      free(apontador);
+    }
+
+    if (no.nos[i].chave != -1) {
+      printf(" chave: %d", no.nos[i].chave);
+    }
+  }
+  printf("\n");
+}
+
+void imprimeArvore(FILE **arvore, Controle *c) {
+  struct Queue* queue = createQueue(100);
+  enqueue(queue, c->deslocamentoRaiz);
+
+  int index = 1;
+  while (!isEmpty(queue)) {
+    int deslocamento = dequeue(queue);
+    imprimeNoLargura(index, deslocamento, queue, arvore);
+    index++;
+  }
+}
 
 void imprimeOrdem(FILE **arvore, Controle *c) {
   RegistroArquivoArvore arvoreRaiz;
