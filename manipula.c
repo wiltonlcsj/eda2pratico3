@@ -93,7 +93,7 @@ void imprimir(RegistroArquivoDados registro) {
   printf("\n");
 }
 
-void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamentoPai) {
+void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamentoPai, RegistroArquivoArvore *registro) {
   RegistroArquivoArvore pai;
   if (deslocamentoPai != -1) {
     fseek(*arvore, sizeof(*c) + deslocamentoPai * sizeof(pai), SEEK_SET);
@@ -165,14 +165,19 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamen
   int index = 0;
   for (int i = (mid + 1) * 2; i < END_POINT; i++) {
     novoFilho.nos[index] = filho.nos[i];
-    novoFilho.ocupados++;
+    if (filho.nos[i].chave != -1) {
+      novoFilho.ocupados++;
+    }
     index++;
   }
 
-  for (int i = (mid * 2) + 1; i <= END_POINT; i++) {
+  for (int i = (mid * 2) + 1; i < END_POINT; i++) {
+    if(filho.nos[i].chave != -1) {
+      filho.ocupados--;
+    }
+
     filho.nos[i].apontador = -1;
     filho.nos[i].chave = -1;
-    filho.ocupados++;
   }
 
   // Atualizando pai na memória
@@ -186,6 +191,12 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamen
   // Criando novo filho na memória
   fseek(*arvore, sizeof(*c) + deslocamentoNovoFilho * sizeof(novoFilho), SEEK_SET);
   fwrite(&novoFilho, sizeof(novoFilho), 1, *arvore);
+
+  // Copiando informação do pai para o registro corrente
+  for (int i = 0; i < END_POINT; i++) {
+    registro->nos[i] = pai.nos[i];
+  }
+  registro->ocupados = pai.ocupados;
 }
 
 int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
@@ -207,13 +218,13 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
   int noAtual = c->deslocamentoRaiz;
   while (deslocamento == -2) {
     if (registro.ocupados == MAX_NO) {
-      splitNode(arvore, c, noAtual, deslocamentoPai);
+      splitNode(arvore, c, noAtual, deslocamentoPai, &registro);
     }
 
     int indice1 = (registro.ocupados * 2) - 1;
     int z = indice1;
     while (z >= 1) {
-      if (registro.nos[z].chave < chave) {
+      if (registro.nos[z].chave <= chave) {
         break;
       }
       z -= 2;
@@ -253,11 +264,11 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
         indice = indice2 + 2;
       } else {
         // Está no meio ou é o novo menor número
-        for (int indice4 = (registro.ocupados * 2) - 1; indice4 >= indice1; indice4 -= 2) {
+        for (int indice4 = (registro.ocupados * 2) - 1; indice4 > indice2; indice4 -= 2) {
           registro.nos[indice4 + 2] = registro.nos[indice4];
           registro.nos[indice4 + 1] = registro.nos[indice4 - 1];
         }
-        indice = (indice2 < 0) ? 1 : indice1;
+        indice = (indice2 < 0) ? 1 : indice2 + 2;
       }
 
       No novoNo;
@@ -289,17 +300,12 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
     return -1;
   }
 
-  for (int i = 0; i < END_POINT; i++) {
-    printf("pos: %d, chave: %d, pont: %d\n", i, registro.nos[i].chave,
-           registro.nos[i].apontador);
-  }
-
   int deslocamento = -2;
   int deslocamentoPai = -1;
   int noAtual = c->deslocamentoRaiz;
   while (deslocamento == -2) {
     if (registro.ocupados == MAX_NO) {
-      splitNode(arvore, c, noAtual, deslocamentoPai);
+      splitNode(arvore, c, noAtual, deslocamentoPai, &registro);
     }
 
     int i = (registro.ocupados * 2) - 1;
@@ -380,12 +386,45 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
   imprimir(r);
 }
 
-void imprimeArvore(FILE **dados, FILE **arvore, Controle *c) {}
+void imprimeNo(int deslocamento, FILE **arvore){
+  RegistroArquivoArvore no;
 
-void imprimeOrdem(FILE **dados, FILE **arvore, Controle *c) {
+  fseek(*arvore, sizeof(Controle) + deslocamento * sizeof(no), SEEK_SET);
+  fread(&no, sizeof(no), 1, *arvore);
+
+  for (int i = 0; i < END_POINT; i++) {
+    if (no.nos[i].apontador != -1 && no.nos[i].chave == -1) {
+      imprimeNo(no.nos[i].apontador, arvore);
+      continue;
+    }
+    
+    if (no.nos[i].chave != -1) {
+      printf("%d\n", no.nos[i].chave);
+    }
+  }
 }
 
-void taxaDeOcupacao(FILE **dados, FILE **arvore, Controle *c) {
+void imprimeArvore(FILE **arvore, Controle *c) {}
+
+void imprimeOrdem(FILE **arvore, Controle *c) {
+  RegistroArquivoArvore arvoreRaiz;
+
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(arvoreRaiz), SEEK_SET);
+  fread(&arvoreRaiz, sizeof(arvoreRaiz), 1, *arvore);
+
+  for (int i = 0; i < END_POINT; i++) {
+    if (arvoreRaiz.nos[i].apontador != -1 && arvoreRaiz.nos[i].chave == -1) {
+      imprimeNo(arvoreRaiz.nos[i].apontador, arvore);
+      continue;
+    }
+
+    if (arvoreRaiz.nos[i].chave != -1) {
+      printf("%d\n", arvoreRaiz.nos[i].chave);
+    }
+  }
+}
+
+void taxaDeOcupacao(FILE **arvore, Controle *c) {
   RegistroArquivoArvore arvoreRaiz;
 
   fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(arvoreRaiz), SEEK_SET);
@@ -396,9 +435,9 @@ void taxaDeOcupacao(FILE **dados, FILE **arvore, Controle *c) {
     return;
   }
 
-  float qntRegistros = (float) 0;
-  float qntNos = (float) 0;
-  printf("taxa de ocupacao: %.1f", qntRegistros / (qntNos * MAX_NO));
+  float qntRegistros = (float) c->proximoDadosLivre;
+  float qntNos = (float) c->proximoArvoreLivre;
+  printf("taxa de ocupacao: %.1f\n", qntRegistros / (qntNos * MAX_NO));
 }
 
 int main(void) {
@@ -437,17 +476,17 @@ int main(void) {
       }
       case 'p': {
         // Deve imprimir a arvore
-        imprimeArvore(&pont_dados, &pont_arvore, &controle);
+        imprimeArvore(&pont_arvore, &controle);
         break;
       }
       case 'o': {
         // Deve imprimir as chaves em ordem crescente
-        imprimeOrdem(&pont_dados, &pont_arvore, &controle);
+        imprimeOrdem(&pont_arvore, &controle);
         break;
       }
       case 't': {
         // Deve imprimir a taxa de ocupação da arvore
-        taxaDeOcupacao(&pont_dados, &pont_arvore, &controle);
+        taxaDeOcupacao(&pont_arvore, &controle);
         break;
       }
       default:
