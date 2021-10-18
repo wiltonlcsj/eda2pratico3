@@ -411,20 +411,22 @@ void imprimeNo(int deslocamento, FILE **arvore){
   }
 }
 
-void imprimeNoLargura(int index, int deslocamento, Queue *queue, FILE **arvore) {
+int imprimeNoLargura(int index, int offset, int deslocamento, Queue *queue, FILE **arvore) {
 RegistroArquivoArvore no;
 
   fseek(*arvore, sizeof(Controle) + deslocamento * sizeof(no), SEEK_SET);
   fread(&no, sizeof(no), 1, *arvore);
 
   printf("No: %d:", index);
-  int apontadores = index;
+  int usados = 0;
+  int apontadores = index != 1 ? index + (offset-1) : index + offset;
   for (int i = 0; i <= no.ocupados * 2; i++) {
     if (no.nos[i].chave == -1) {
       char *apontador = (char*) malloc(100);
       
       if (no.nos[i].apontador != -1) {
         apontadores++;
+        usados++;
         snprintf(apontador, 100, "%d", apontadores);
         enqueue(queue, no.nos[i].apontador);
       } else {
@@ -440,6 +442,7 @@ RegistroArquivoArvore no;
     }
   }
   printf("\n");
+  return usados;
 }
 
 void imprimeArvore(FILE **arvore, Controle *c) {
@@ -447,9 +450,16 @@ void imprimeArvore(FILE **arvore, Controle *c) {
   enqueue(queue, c->deslocamentoRaiz);
 
   int index = 1;
+  int usados = 0;
   while (!isEmpty(queue)) {
     int deslocamento = dequeue(queue);
-    imprimeNoLargura(index, deslocamento, queue, arvore);
+
+    int tst = 0;
+    if (deslocamento != c->deslocamentoRaiz) {
+      tst = 1;
+    }
+
+    usados = imprimeNoLargura(index, usados, deslocamento, queue, arvore) + tst;
     index++;
   }
 }
