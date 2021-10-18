@@ -405,7 +405,7 @@ void imprimeNo(int deslocamento, FILE **arvore){
   }
 }
 
-void imprimeNoLargura(int index, int deslocamento, struct Queue *queue, FILE **arvore) {
+void imprimeNoLargura(int index, int deslocamento, Queue *queue, FILE **arvore) {
 RegistroArquivoArvore no;
 
   fseek(*arvore, sizeof(Controle) + deslocamento * sizeof(no), SEEK_SET);
@@ -437,7 +437,7 @@ RegistroArquivoArvore no;
 }
 
 void imprimeArvore(FILE **arvore, Controle *c) {
-  struct Queue* queue = createQueue(100);
+  Queue* queue = createQueue(c->proximoArvoreLivre+1);
   enqueue(queue, c->deslocamentoRaiz);
 
   int index = 1;
