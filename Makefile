@@ -16,12 +16,6 @@ run-test-2:
 	gcc manipula.c -o program -lm
 	./program < ./in/2.in > 2-p.out
 
-run-test-3:
-	rm -f dados
-	rm -f arvore
-	gcc manipula.c -o program -lm
-	./program < ./in/3.in > 3-p.out
-
 clear:
 	rm -f dados
 	rm -f arvore
