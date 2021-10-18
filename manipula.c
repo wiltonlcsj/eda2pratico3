@@ -145,6 +145,9 @@ void splitNode(FILE **arvore, Controle *c, int deslocamentoFilho, int deslocamen
   } else {
     // Está no meio ou novo menor numero
     for (int j = (pai.ocupados * 2) - 1; j >= i; j -= 2) {
+      if(j == (pai.ocupados * 2) - 1) {
+        pai.nos[j + 3] = pai.nos[j + 1];
+      }
       pai.nos[j + 2] = pai.nos[j];
       pai.nos[j + 1] = pai.nos[j - 1];
     }
@@ -266,6 +269,9 @@ int buscaChaveCadastro(int chave, FILE **arvore, Controle *c) {
       } else {
         // Está no meio ou é o novo menor número
         for (int indice4 = (registro.ocupados * 2) - 1; indice4 > indice2; indice4 -= 2) {
+          if(indice4 == (registro.ocupados * 2) - 1) {
+            registro.nos[indice4 + 3] = registro.nos[indice4 + 1];
+          }
           registro.nos[indice4 + 2] = registro.nos[indice4];
           registro.nos[indice4 + 1] = registro.nos[indice4 - 1];
         }
