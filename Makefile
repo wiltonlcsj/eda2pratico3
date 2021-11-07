@@ -7,8 +7,8 @@ run-test:
 	rm -f arvore.dat
 	gcc manipula.c -o program -lm
 	./program < ./in/1.in > 1-p.out
-	# cmp ./out/1.out 1-p.out
-	# rm 1-p.out
+	#cmp ./out/1.out 1-p.out
+	rm 1-p.out
 
 clear:
 	rm -f dados.dat
