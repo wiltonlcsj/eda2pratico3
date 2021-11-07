@@ -1,8 +1,7 @@
 .vscode
 .idea
 
-arvore.dat
-dados.dat
+*.dat
 
 arvore
 dados

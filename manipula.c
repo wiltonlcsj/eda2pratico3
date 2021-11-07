@@ -6,6 +6,7 @@
 typedef struct {
     char palavra[30];
     int frequencia;
+    int inicioProximosLista;
 } RegistroArquivoDados;
 
 typedef struct {
@@ -16,17 +17,38 @@ typedef struct {
 } RegistroArquivoArvore;
 
 typedef struct {
+  char palavra[30];
+  int frequencia;
+  int proximo;
+} RegistroArquivoLista;
+
+typedef struct {
     int proximoDadosLivre;
     int proximoArvoreLivre;
+    int proximoListaLivre;
     int deslocamentoRaiz;
 } Controle;
 
-void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
+typedef struct {
+  int length;
+  char sugestoes[3][30];
+} Sugestoes;
+
+void abreArquivo(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
   *dados = fopen("dados.dat", "r+");
   if (*dados == NULL) {
     *dados = fopen("dados.dat", "w+");
     if (*dados == NULL) {
       c->proximoArvoreLivre = -1;
+      return;
+    }
+  }
+
+  *lista = fopen("lista.dat", "r+");
+  if (*lista == NULL) {
+    *lista = fopen("lista.dat", "w+");
+    if (*lista == NULL) {
+      c->proximoListaLivre = -1;
       return;
     }
   }
@@ -40,14 +62,13 @@ void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
     } else {
       c->proximoArvoreLivre = 0;
       c->proximoDadosLivre = 0;
+      c->proximoListaLivre = 0;
       c->deslocamentoRaiz = -1;
       fseek(*arvore, 0, SEEK_SET);
       if (!fwrite(c, sizeof(*c), 1, *arvore)) {
         c->proximoArvoreLivre = -1;
         return;
       }
-
-      return;
     }
   }
 
@@ -165,6 +186,7 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
   if (found == 0) {
     RegistroArquivoDados dadosPalavra;
     dadosPalavra.frequencia = 0;
+    dadosPalavra.inicioProximosLista = -1;
     strcpy(dadosPalavra.palavra, palavraCorrente);
 
     if (registro.letra[0] == '+') {
@@ -199,19 +221,10 @@ void cadastrar(FILE **dados, FILE **arvore, Controle *c) {
   }
 }
 
-void consultar(FILE **dados, FILE **arvore, Controle *c) {
-  char palavra[30];
-  fgets(palavra, 30, stdin);
-    size_t ln = strlen(palavra) - 1;
-    if (palavra[ln] == '\n') 
-      palavra[ln] = '\0';
-
+int buscaPalavra(char palavra[30], FILE **arvore, Controle *c) {
   RegistroArquivoArvore raiz;
   fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
   fread(&raiz, sizeof(raiz), 1, *arvore); 
-
-  char palavraCorrente[30];
-  strcpy(palavraCorrente, palavra);
 
   int length = strlen(palavra);
 
@@ -224,7 +237,7 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
       break;
     }
 
-    if (registro.letra[0] == palavraCorrente[i]) {
+    if (registro.letra[0] == palavra[i]) {
       if (registro.esquerda == -1) {
         break;
       } else {
@@ -246,6 +259,40 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
     found = registro.dados;
   }
 
+  return found;
+}
+
+Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore, Controle *c) {
+  //TODO implementar busca
+  Sugestoes sugestoes;
+  sugestoes.length = 3;
+  for (int i = 0; i < sugestoes.length; i++) {
+    strcpy(sugestoes.sugestoes[i], " *");
+  }
+
+  return sugestoes;
+}
+
+Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **dados, FILE **arvore, Controle *c) {
+  //TODO implementar busca
+  Sugestoes sugestoes;
+  sugestoes.length = 3;
+  for (int i = 0; i < sugestoes.length; i++) {
+    strcpy(sugestoes.sugestoes[i], " *");
+  }
+
+  return sugestoes;
+}
+
+void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
+  char palavra[30];
+  fgets(palavra, 30, stdin);
+  size_t ln = strlen(palavra) - 1;
+  if (palavra[ln] == '\n') 
+    palavra[ln] = '\0';
+
+  int found = buscaPalavra(palavra, arvore, c);
+
   if (found != -1) {
     RegistroArquivoDados dadosPalavra;
     fseek(*dados, found * sizeof(dadosPalavra), SEEK_SET);
@@ -254,19 +301,81 @@ void consultar(FILE **dados, FILE **arvore, Controle *c) {
     fseek(*dados, found * sizeof(dadosPalavra), SEEK_SET);
     fwrite(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
 
-    printf("proximas palavras:\n");
+    Sugestoes sugestoes = procuraProximasPalavras(palavra, dados, arvore, c);
+
+    char sugestoesSaida[100] = "";
+    for (int i = 0; i < sugestoes.length; i++) {
+      char aux[30] = " ";
+      strcat(aux, sugestoes.sugestoes[i]);
+      strcat(sugestoesSaida, aux);
+    }
+
+    printf("proximas palavras:%s\n", sugestoesSaida);
   } else {
-    printf("palavra desconhecida - possiveis correcoes:\n");
+    Sugestoes sugestoesDesc = procuraPossiveisPalavras(palavra, dados, arvore, c);
+    char sugestoesSaida[100] = "";;
+    for (int i = 0; i < sugestoesDesc.length; i++) {
+      char aux[30] = " ";
+      strcat(aux, sugestoesDesc.sugestoes[i]);
+      strcat(sugestoesSaida, aux);
+    }
+
+    printf("palavra desconhecida - possiveis correcoes:%s\n", sugestoesSaida);
+
+    char palavraCorrigida[30];
+    fgets(palavraCorrigida, 30, stdin);
+    size_t ln = strlen(palavraCorrigida) - 1;
+    if (palavraCorrigida[ln] == '\n') 
+      palavraCorrigida[ln] = '\0';
+
+    if (palavraCorrigida == palavra) {
+      cadastraLinha(palavraCorrigida, dados, arvore, c);
+      return;
+    }
+
+    Sugestoes sugestoesProx = procuraProximasPalavras(palavraCorrigida, dados, arvore, c);
+    char sugestoesSaidaProx[100] = "";;
+    for (int i = 0; i < sugestoesProx.length; i++) {
+      char aux[30] = " ";
+      strcat(aux, sugestoesProx.sugestoes[i]);
+      strcat(sugestoesSaidaProx, aux);
+    }
+
+    printf("proximas palavras:%s\n", sugestoesSaidaProx);
+  }
+}
+
+void imprimePalavras(FILE **dados, FILE **arvore, Controle *c) {
+  RegistroArquivoDados registros[MAXNSIMBOLOS];
+
+  for (int i = 0; i < MAXNSIMBOLOS; i++) {
+    
+  }
+}
+
+void frequenciaProximasPalavras(FILE **dados, FILE **arvore, Controle *c) {
+  char palavra[30];
+  fgets(palavra, 30, stdin);
+  size_t ln = strlen(palavra) - 1;
+  if (palavra[ln] == '\n') 
+    palavra[ln] = '\0';
+
+  int found = buscaPalavra(palavra, arvore, c);
+
+  if (found == -1) {
+    printf("palavra nao encontrada\n");
+    return;
   }
 }
 
 int main(void) {
   FILE *pont_dados;
   FILE *pont_arvore;
+  FILE *pont_lista;
   char opcao;
 
   Controle controle;
-  abreArquivo(&pont_dados, &pont_arvore, &controle);
+  abreArquivo(&pont_dados, &pont_arvore, &pont_lista, &controle);
   if (controle.proximoArvoreLivre == -1) {
     printf("Erro na abertura dos arquivos!");
     exit(-1);
@@ -291,15 +400,17 @@ int main(void) {
       }
       case 'd': {
         // Deve consultar a palavra
-        consultar(&pont_dados, &pont_arvore, &controle);
+        consultar(&pont_dados, &pont_arvore, &pont_lista, &controle);
         break;
       }
       case 'f': {
         // Deve imprimir as palavras em ordem alfabética com frequência
+        imprimePalavras(&pont_dados, &pont_arvore, &controle);
         break;
       }
       case 'p': {
         // Deve imprimir as próximas palavras mais frequentes
+        frequenciaProximasPalavras(&pont_dados, &pont_arvore, &controle);
         break;
       }
       default:
@@ -312,5 +423,6 @@ int main(void) {
 
   fechaArquivo(&pont_dados);
   fechaArquivo(&pont_arvore);
+  fechaArquivo(&pont_lista);
   return (0);
 }
