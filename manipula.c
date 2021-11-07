@@ -23,18 +23,18 @@ typedef struct {
 } Controle;
 
 void abreArquivo(FILE **dados, FILE **arvore, Controle *c) {
-  *dados = fopen("dados", "r+");
+  *dados = fopen("dados.dat", "r+");
   if (*dados == NULL) {
-    *dados = fopen("dados", "w+");
+    *dados = fopen("dados.dat", "w+");
     if (*dados == NULL) {
       c->proximoArvoreLivre = -1;
       return;
     }
   }
 
-  *arvore = fopen("arvore", "r+");
+  *arvore = fopen("arvore.dat", "r+");
   if (*arvore == NULL) {
-    *arvore = fopen("arvore", "w+");
+    *arvore = fopen("arvore.dat", "w+");
     if (*arvore == NULL) {
       c->proximoArvoreLivre = -1;
       return;
@@ -99,28 +99,15 @@ int buscaChaveConsulta(int chave, FILE **arvore, Controle *c) {
   return deslocamento;
 }
 
-void cadastrar(FILE **dados, FILE **arvore, Controle *c) {
-  int linhas;
-  scanf("%d%*c", &linhas);
-
-  char palavrasEntrada[linhas][30];
-
-  for (int i = 0; i < linhas; i++) {
-    fgets(palavrasEntrada[i], 30, stdin);
-    size_t ln = strlen(palavrasEntrada[i]) - 1;
-    if (palavrasEntrada[i][ln] == '\n') 
-      palavrasEntrada[i][ln] = '\0';
-  }
-
-  for (int i = 0; i < linhas; i++) {
-    RegistroArquivoArvore raiz;
+void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Controle *c){
+  RegistroArquivoArvore raiz;
     fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
     fread(&raiz, sizeof(raiz), 1, *arvore); 
 
     char palavraCorrente[30];
-    strcpy(palavraCorrente, palavrasEntrada[i]);
+    strcpy(palavraCorrente, palavraEntrada);
 
-    int length = strlen(palavrasEntrada[i]);
+    int length = strlen(palavraEntrada);
 
     int i = 0;
     int found = 1;
@@ -216,6 +203,23 @@ void cadastrar(FILE **dados, FILE **arvore, Controle *c) {
       fwrite(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
       c->proximoDadosLivre++;
     }
+}
+
+void cadastrar(FILE **dados, FILE **arvore, Controle *c) {
+  int linhas;
+  scanf("%d%*c", &linhas);
+
+  char palavrasEntrada[linhas][30];
+
+  for (int i = 0; i < linhas; i++) {
+    fgets(palavrasEntrada[i], 30, stdin);
+    size_t ln = strlen(palavrasEntrada[i]) - 1;
+    if (palavrasEntrada[i][ln] == '\n') 
+      palavrasEntrada[i][ln] = '\0';
+  }
+
+  for (int i = 0; i < linhas; i++) {
+    cadastraLinha(palavrasEntrada[i], dados, arvore, c);
   }
 }
 
