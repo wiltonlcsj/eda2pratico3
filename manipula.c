@@ -494,6 +494,14 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
 
       printf("proximas palavras:%s\n", sugestoesSaidaProx);
     }
+
+    int foundCorrigida = buscaPalavra(palavraCorrigida, arvore, c);
+    RegistroArquivoDados dadosPalavra;
+    fseek(*dados, foundCorrigida * sizeof(dadosPalavra), SEEK_SET);
+    fread(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
+    dadosPalavra.frequencia++;
+    fseek(*dados, foundCorrigida * sizeof(dadosPalavra), SEEK_SET);
+    fwrite(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
   }
 }
 
