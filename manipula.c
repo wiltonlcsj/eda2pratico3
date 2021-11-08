@@ -448,14 +448,16 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     strcpy(c->ultimaPalavra, palavra);
     Sugestoes sugestoes = procuraProximasPalavras(palavra, dados, arvore, lista, c);
 
-    char sugestoesSaida[100] = "";
-    for (int i = 0; i < sugestoes.length; i++) {
-      char aux[30] = " ";
-      strcat(aux, sugestoes.sugestoes[i]);
-      strcat(sugestoesSaida, aux);
-    }
+    if (sugestoes.length > 0) {
+      char sugestoesSaida[100] = "";
+      for (int i = 0; i < sugestoes.length; i++) {
+        char aux[30] = " ";
+        strcat(aux, sugestoes.sugestoes[i]);
+        strcat(sugestoesSaida, aux);
+      }
 
-    printf("proximas palavras:%s\n", sugestoesSaida);
+      printf("proximas palavras:%s\n", sugestoesSaida);
+    }
   } else {
     Sugestoes sugestoesDesc = procuraPossiveisPalavras(palavra, dados, arvore, c);
     char sugestoesSaida[100] = "";
@@ -482,14 +484,16 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     strcpy(c->ultimaPalavra, palavraCorrigida);
 
     Sugestoes sugestoesProx = procuraProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
-    char sugestoesSaidaProx[100] = "";
-    for (int i = 0; i < sugestoesProx.length; i++) {
-      char aux[30] = " ";
-      strcat(aux, sugestoesProx.sugestoes[i]);
-      strcat(sugestoesSaidaProx, aux);
-    }
+    if (sugestoesProx.length > 0) {
+      char sugestoesSaidaProx[100] = "";
+      for (int i = 0; i < sugestoesProx.length; i++) {
+        char aux[30] = " ";
+        strcat(aux, sugestoesProx.sugestoes[i]);
+        strcat(sugestoesSaidaProx, aux);
+      }
 
-    printf("proximas palavras:%s\n", sugestoesSaidaProx);
+      printf("proximas palavras:%s\n", sugestoesSaidaProx);
+    }
   }
 }
 
