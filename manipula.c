@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define MAXNSIMBOLOS 5
+
 typedef struct {
     char palavra[30];
     int frequencia;
@@ -110,14 +111,14 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
 
   int i = 0;
   int found = 1;
-  int pai = c->deslocamentoRaiz;
+  int pai = -1;
+  char direcaoPai[4] = "dir";
+  int corrente = c->deslocamentoRaiz;
   RegistroArquivoArvore registro = raiz;
 
   while (i != length) {
     if (registro.letra[0] == '*') {
       registro.letra[0] = palavraCorrente[i];
-
-      pai = c->deslocamentoRaiz;
       fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(registro), SEEK_SET);
       fwrite(&registro, sizeof(registro), 1, *arvore);
       found = 0;
@@ -125,7 +126,7 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
 
     if (registro.letra[0] == '+') {
       registro.letra[0] = palavraCorrente[i];
-      fseek(*arvore, sizeof(*c) + pai * sizeof(registro), SEEK_SET);
+      fseek(*arvore, sizeof(*c) + corrente * sizeof(registro), SEEK_SET);
       fwrite(&registro, sizeof(registro), 1, *arvore);
       found = 0;
     }
@@ -140,22 +141,26 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
         fwrite(&novoRegistro, sizeof(novoRegistro), 1, *arvore);
 
         registro.esquerda = c->proximoArvoreLivre;
-        fseek(*arvore, sizeof(*c) + pai * sizeof(registro), SEEK_SET);
+        fseek(*arvore, sizeof(*c) + corrente * sizeof(registro), SEEK_SET);
         fwrite(&registro, sizeof(registro), 1, *arvore);
 
-        pai = c->proximoArvoreLivre;
+        pai = corrente;
+        strcpy(direcaoPai, "esq");
+        corrente = c->proximoArvoreLivre;
         c->proximoArvoreLivre++;
         registro = novoRegistro;
         found = 0;
         i++;
         continue;
       } else {
-        pai = registro.esquerda;
+        strcpy(direcaoPai, "esq");
+        pai = corrente;
+        corrente = registro.esquerda;
         i++;
         fseek(*arvore, sizeof(*c) + registro.esquerda * sizeof(registro), SEEK_SET);
         fread(&registro, sizeof(registro), 1, *arvore);
       }
-    } else {
+    } else if (registro.letra[0] < palavraCorrente[i]) {
       if (registro.direita == -1) {
         RegistroArquivoArvore novoRegistro;
         novoRegistro.letra[0] = '+';
@@ -165,19 +170,52 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
         fwrite(&novoRegistro, sizeof(novoRegistro), 1, *arvore);
 
         registro.direita = c->proximoArvoreLivre;
-        fseek(*arvore, sizeof(*c) + pai * sizeof(registro), SEEK_SET);
+        fseek(*arvore, sizeof(*c) + corrente * sizeof(registro), SEEK_SET);
         fwrite(&registro, sizeof(registro), 1, *arvore);
 
-        pai = c->proximoArvoreLivre;
+        strcpy(direcaoPai, "dir");
+        pai = corrente;
+        corrente = c->proximoArvoreLivre;
         c->proximoArvoreLivre++;
         registro = novoRegistro;
         found = 0;
         continue;
       } else {
-        pai = registro.direita;
+        strcpy(direcaoPai, "dir");
+        pai = corrente;
+        corrente = registro.direita;
         fseek(*arvore, sizeof(*c) + registro.direita * sizeof(registro), SEEK_SET);
         fread(&registro, sizeof(registro), 1, *arvore);
       }
+    } else {
+      RegistroArquivoArvore novoRegistro;
+      novoRegistro.letra[0] = '+';
+      novoRegistro.esquerda = -1;
+      novoRegistro.direita = corrente;
+      fseek(*arvore, sizeof(*c) + c->proximoArvoreLivre * sizeof(novoRegistro), SEEK_SET);
+      fwrite(&novoRegistro, sizeof(novoRegistro), 1, *arvore);
+
+      if (pai != -1) {
+        RegistroArquivoArvore registroPai;
+        fseek(*arvore, sizeof(*c) + pai * sizeof(registroPai), SEEK_SET);
+        fread(&registroPai, sizeof(registroPai), 1, *arvore);
+        if(strcmp(direcaoPai, "dir") == 0) {
+          registroPai.direita = c->proximoArvoreLivre;
+        } else {
+          registroPai.esquerda = c->proximoArvoreLivre;
+        }
+
+        fseek(*arvore, sizeof(*c) + pai * sizeof(registroPai), SEEK_SET);
+        fwrite(&registroPai, sizeof(registroPai), 1, *arvore);
+      } else {
+        c->deslocamentoRaiz = c->proximoArvoreLivre;
+        pai = -1;
+      }
+
+      corrente = c->proximoArvoreLivre;
+      c->proximoArvoreLivre++;
+      registro = novoRegistro;
+      found = 0;
     }
   }
 
@@ -190,7 +228,7 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
     if (registro.letra[0] == '+') {
       registro.letra[0] = '=';
       registro.dados = c->proximoDadosLivre;
-      fseek(*arvore, sizeof(*c) + pai * sizeof(registro), SEEK_SET);
+      fseek(*arvore, sizeof(*c) + corrente * sizeof(registro), SEEK_SET);
       fwrite(&registro, sizeof(registro), 1, *arvore);
     }
 
@@ -242,13 +280,15 @@ int buscaPalavra(char palavra[30], FILE **arvore, Controle *c) {
         fseek(*arvore, sizeof(*c) + registro.esquerda * sizeof(registro), SEEK_SET);
         fread(&registro, sizeof(registro), 1, *arvore);
       }
-    } else {
+    } else if (registro.letra[0] < palavra[i]) {
       if (registro.direita == -1) {
         break;
       } else {
         fseek(*arvore, sizeof(*c) + registro.direita * sizeof(registro), SEEK_SET);
         fread(&registro, sizeof(registro), 1, *arvore);
       }
+    } else {
+      break;
     }
   }
 
@@ -265,7 +305,6 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
   int found = buscaPalavra(palavra, arvore, c);
 
   if (found == -1) {
-    printf("palavra nao encontrada\n");
     sugestoes.length = 0;
     return sugestoes;
   }
@@ -275,7 +314,6 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
   fread(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
 
   if (dadosPalavra.inicioProximosLista == -1) {
-    printf("sem sugestoes para proximas palavras\n");
     sugestoes.length = 0;
     return sugestoes;
   }
@@ -471,9 +509,9 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
 
     char palavraCorrigida[30];
     fgets(palavraCorrigida, 30, stdin);
-    size_t ln = strlen(palavraCorrigida) - 1;
-    if (palavraCorrigida[ln] == '\n')
-      palavraCorrigida[ln] = '\0';
+    size_t enln = strlen(palavraCorrigida) - 1;
+    if (palavraCorrigida[enln] == '\n')
+      palavraCorrigida[enln] = '\0';
 
     if (strcmp(palavraCorrigida, palavra) == 0) {
       cadastraLinha(palavraCorrigida, dados, arvore, c);
@@ -505,8 +543,34 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
   }
 }
 
-void imprimePalavras(FILE **dados, FILE **arvore, Controle *c) {
+void imprimeNo(RegistroArquivoArvore no, FILE **arvore, FILE **dados, Controle *c) {
+  if (no.letra[0] == '=') {
+    RegistroArquivoDados dadosPalavra;
+    fseek(*dados, no.dados * sizeof(dadosPalavra), SEEK_SET);
+    fread(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
+    printf("%s %d\n", dadosPalavra.palavra, dadosPalavra.frequencia);
+  }
 
+  if (no.esquerda != -1) {
+    RegistroArquivoArvore novoNo;
+    fseek(*arvore, sizeof(*c) + no.esquerda * sizeof(novoNo), SEEK_SET);
+    fread(&novoNo, sizeof(novoNo), 1, *arvore);
+    imprimeNo(novoNo, arvore, dados, c);
+  }
+
+  if (no.direita != -1) {
+    RegistroArquivoArvore novoNo;
+    fseek(*arvore, sizeof(*c) + no.direita * sizeof(novoNo), SEEK_SET);
+    fread(&novoNo, sizeof(novoNo), 1, *arvore);
+    imprimeNo(novoNo, arvore, dados, c);
+  }
+}
+
+void imprimePalavras(FILE **arvore, FILE **dados, Controle *c) {
+  RegistroArquivoArvore raiz;
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
+  fread(&raiz, sizeof(raiz), 1, *arvore);
+  imprimeNo(raiz, arvore, dados, c);
 }
 
 void frequenciaProximasPalavras(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
@@ -519,7 +583,6 @@ void frequenciaProximasPalavras(FILE **dados, FILE **arvore, FILE **lista, Contr
   int found = buscaPalavra(palavra, arvore, c);
 
   if (found == -1) {
-    printf("palavra nao encontrada\n");
     return;
   }
 
@@ -528,7 +591,6 @@ void frequenciaProximasPalavras(FILE **dados, FILE **arvore, FILE **lista, Contr
   fread(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
 
   if (dadosPalavra.inicioProximosLista == -1) {
-    printf("sem sugestoes para proximas palavras\n");
     return;
   }
 
@@ -630,7 +692,7 @@ int main(void) {
       }
       case 'f': {
         // Deve imprimir as palavras em ordem alfabética com frequência
-        imprimePalavras(&pont_dados, &pont_arvore, &controle);
+        imprimePalavras(&pont_arvore, &pont_dados, &controle);
         break;
       }
       case 'p': {
