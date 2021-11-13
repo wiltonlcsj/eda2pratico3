@@ -384,11 +384,7 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
 Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **dados, FILE **arvore, Controle *c) {
   //TODO implementar busca
   Sugestoes sugestoes;
-  sugestoes.length = 3;
-  for (int i = 0; i < sugestoes.length; i++) {
-    strcpy(sugestoes.sugestoes[i], " *");
-  }
-
+  sugestoes.length = 0;
   return sugestoes;
 }
 
@@ -481,7 +477,7 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     fseek(*dados, found * sizeof(dadosPalavra), SEEK_SET);
     fwrite(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
 
-    if (palavra != c->ultimaPalavra) {
+    if (strcmp(c->ultimaPalavra, palavra) != 0) {
       salvaFrequenciaProximasPalavras(palavra, dados, arvore, lista, c);
       strcpy(c->ultimaPalavra, palavra);
     }
@@ -520,10 +516,12 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
 
     if (strcmp(palavraCorrigida, palavra) == 0) {
       cadastraLinha(false, palavraCorrigida, dados, arvore, c);
+      salvaFrequenciaProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
+      strcpy(c->ultimaPalavra, palavraCorrigida);
       return;
     }
 
-    if (palavraCorrigida != c->ultimaPalavra) {
+    if (strcmp(palavraCorrigida, c->ultimaPalavra) != 0) {
       salvaFrequenciaProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
       strcpy(c->ultimaPalavra, palavraCorrigida);
     }
