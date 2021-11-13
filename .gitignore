@@ -8,3 +8,5 @@ dados
 program
 
 *-p.out
+
+cmake-build-debug/

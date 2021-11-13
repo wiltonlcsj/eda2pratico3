@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAXNSIMBOLOS 5
-
 typedef struct {
     char palavra[30];
     int frequencia;
@@ -484,6 +482,9 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
 
     salvaFrequenciaProximasPalavras(palavra, dados, arvore, lista, c);
     strcpy(c->ultimaPalavra, palavra);
+
+    /*
+     * Próximas palavras para casos de acerto
     Sugestoes sugestoes = procuraProximasPalavras(palavra, dados, arvore, lista, c);
 
     if (sugestoes.length > 0) {
@@ -496,6 +497,7 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
 
       printf("proximas palavras:%s\n", sugestoesSaida);
     }
+     */
   } else {
     Sugestoes sugestoesDesc = procuraPossiveisPalavras(palavra, dados, arvore, c);
     char sugestoesSaida[100] = "";
@@ -522,16 +524,14 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     strcpy(c->ultimaPalavra, palavraCorrigida);
 
     Sugestoes sugestoesProx = procuraProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
-    if (sugestoesProx.length > 0) {
-      char sugestoesSaidaProx[100] = "";
-      for (int i = 0; i < sugestoesProx.length; i++) {
-        char aux[30] = " ";
-        strcat(aux, sugestoesProx.sugestoes[i]);
-        strcat(sugestoesSaidaProx, aux);
-      }
-
-      printf("proximas palavras:%s\n", sugestoesSaidaProx);
+    char sugestoesSaidaProx[100] = "";
+    for (int i = 0; i < sugestoesProx.length; i++) {
+      char aux[30] = " ";
+      strcat(aux, sugestoesProx.sugestoes[i]);
+      strcat(sugestoesSaidaProx, aux);
     }
+
+    printf("proximas palavras:%s\n", sugestoesSaidaProx);
 
     int foundCorrigida = buscaPalavra(palavraCorrigida, arvore, c);
     RegistroArquivoDados dadosPalavra;
