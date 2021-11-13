@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 typedef struct {
     char palavra[30];
@@ -97,7 +98,7 @@ void setRaiz(Controle *c, FILE **arvore) {
 
 void fechaArquivo(FILE **arquivo) { fclose(*arquivo); }
 
-void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Controle *c) {
+void cadastraLinha(bool insert, char palavraEntrada[30], FILE **dados, FILE **arvore, Controle *c) {
   RegistroArquivoArvore raiz;
   fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
   fread(&raiz, sizeof(raiz), 1, *arvore);
@@ -219,7 +220,7 @@ void cadastraLinha(char palavraEntrada[30], FILE **dados, FILE **arvore, Control
 
   if (found == 0) {
     RegistroArquivoDados dadosPalavra;
-    dadosPalavra.frequencia = 0;
+    dadosPalavra.frequencia = insert ? 0 : 1;
     dadosPalavra.inicioProximosLista = -1;
     strcpy(dadosPalavra.palavra, palavraCorrente);
 
@@ -250,7 +251,7 @@ void cadastrar(FILE **dados, FILE **arvore, Controle *c) {
   }
 
   for (int i = 0; i < linhas; i++) {
-    cadastraLinha(palavrasEntrada[i], dados, arvore, c);
+    cadastraLinha(true, palavrasEntrada[i], dados, arvore, c);
   }
 }
 
@@ -480,8 +481,10 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     fseek(*dados, found * sizeof(dadosPalavra), SEEK_SET);
     fwrite(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
 
-    salvaFrequenciaProximasPalavras(palavra, dados, arvore, lista, c);
-    strcpy(c->ultimaPalavra, palavra);
+    if (palavra != c->ultimaPalavra) {
+      salvaFrequenciaProximasPalavras(palavra, dados, arvore, lista, c);
+      strcpy(c->ultimaPalavra, palavra);
+    }
 
     /*
      * Próximas palavras para casos de acerto
@@ -516,12 +519,14 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
       palavraCorrigida[enln] = '\0';
 
     if (strcmp(palavraCorrigida, palavra) == 0) {
-      cadastraLinha(palavraCorrigida, dados, arvore, c);
+      cadastraLinha(false, palavraCorrigida, dados, arvore, c);
       return;
     }
 
-    salvaFrequenciaProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
-    strcpy(c->ultimaPalavra, palavraCorrigida);
+    if (palavraCorrigida != c->ultimaPalavra) {
+      salvaFrequenciaProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
+      strcpy(c->ultimaPalavra, palavraCorrigida);
+    }
 
     Sugestoes sugestoesProx = procuraProximasPalavras(palavraCorrigida, dados, arvore, lista, c);
     char sugestoesSaidaProx[100] = "";
