@@ -329,6 +329,7 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
   fseek(*lista, sizeof(registroLista) * dadosPalavra.inicioProximosLista, SEEK_SET);
   fread(&registroLista, sizeof(registroLista), 1, *lista);
   while (fim == 0) {
+    bool inserted = false;
     int emptyUsed = 0;
     for (int i = 0; i < 3; i++) {
       if (registros[i].frequencia == 0) {
@@ -336,6 +337,7 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
         emptyUsed = 1;
         registros[i].frequencia = registroLista.frequencia;
         strcpy(registros[i].palavra, registroLista.palavra);
+        inserted = true;
         break;
       }
     }
@@ -345,6 +347,7 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
         if (registros[i].frequencia < registroLista.frequencia) {
           registros[i].frequencia = registroLista.frequencia;
           strcpy(registros[i].palavra, registroLista.palavra);
+          inserted = true;
           break;
         }
       }
@@ -353,6 +356,24 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
     if (registroLista.proximo == -1) {
       fim = 1;
       continue;
+    }
+
+    if (inserted) {
+      // Ordering by ASC
+      int changed = 1;
+      while (changed == 1) {
+        changed = 0;
+        for (int i = 0; i < used - 1; i++) {
+          if (registros[i].frequencia > registros[i + 1].frequencia) {
+            RegistroArquivoDados aux;
+            aux.frequencia = registros[i].frequencia;
+            strcpy(aux.palavra, registros[i].palavra);
+            registros[i] = registros[i + 1];
+            registros[i + 1] = aux;
+            changed = 1;
+          }
+        }
+      }
     }
 
     fseek(*lista, sizeof(registroLista) * registroLista.proximo, SEEK_SET);
