@@ -1,3 +1,0 @@
-/home/wilton/CLionProjects/eda2pratico3/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/wilton/CLionProjects/eda2pratico3/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/wilton/CLionProjects/eda2pratico3/cmake-build-debug/CMakeFiles/eda2pratico3.dir

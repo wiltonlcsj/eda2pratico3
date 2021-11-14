@@ -1,1 +1,0 @@
-/usr/bin/cc -g CMakeFiles/eda2pratico3.dir/manipula.c.o -o eda2pratico3 
