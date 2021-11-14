@@ -425,6 +425,26 @@ void processaLetra(FILE **arvore, FILE **dados, Sugestoes *sugestoes, RegistroAr
         }
       }
 
+      // Ordering by ASC
+      int changed = 1;
+      while (changed == 1) {
+        changed = 0;
+        for (int i = 0; i < sugestoes->length - 1; i++) {
+          if (sugestoes->frequencias[i] > sugestoes->frequencias[i + 1]) {
+            int freqAux = sugestoes->frequencias[i];
+            char palavraAux[30];
+            strcpy(palavraAux, sugestoes->sugestoes[i]);
+
+            sugestoes->frequencias[i] = sugestoes->frequencias[i + 1];
+            strcpy(sugestoes->sugestoes[i], sugestoes->sugestoes[i + 1]);
+
+            sugestoes->frequencias[i + 1] = freqAux;
+            strcpy(sugestoes->sugestoes[i + 1], palavraAux);
+            changed = 1;
+          }
+        }
+      }
+
       free(registrodados);
     }
   }
@@ -465,6 +485,7 @@ Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **arvore, FILE **dados
   char palavraCorrente[30] = "";
   processaLetra(arvore, dados, &sugestoes, &raiz, palavraCorrente, palavra);
 
+  // Ordering by DESC
   int changed = 1;
   while (changed == 1) {
     changed = 0;
