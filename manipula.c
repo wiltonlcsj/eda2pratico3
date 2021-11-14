@@ -33,6 +33,7 @@ typedef struct {
 typedef struct {
     int length;
     char sugestoes[3][30];
+    int frequencias[3];
 } Sugestoes;
 
 void abreArquivo(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
@@ -382,6 +383,10 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
 }
 
 bool verificaPossibilidadeDiferencas(char palavraCorrente[30], char palavraBuscada[30]) {
+  if (strlen(palavraCorrente) > strlen(palavraBuscada)) {
+    return false;
+  }
+
   int length = strlen(palavraCorrente);
   int erros = 0;
   for (int i = 0; i < length; i++) {
@@ -397,8 +402,59 @@ bool verificaPossibilidadeDiferencas(char palavraCorrente[30], char palavraBusca
   return erros <= 1;
 }
 
-Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **dados, FILE **arvore, Controle *c) {
-  //TODO implementar busca
+void processaLetra(FILE **arvore, FILE **dados, Sugestoes *sugestoes, RegistroArquivoArvore *no, char palavraCorrente[30], char palavraBuscada[30]) {
+  bool estadoPalavraCorrente = verificaPossibilidadeDiferencas(palavraCorrente, palavraCorrente);
+
+  if (no->letra[0] == '=') {
+    if (strlen(palavraCorrente) == strlen(palavraBuscada) && estadoPalavraCorrente) {
+      //Achou
+      RegistroArquivoDados *registrodados = malloc(sizeof(RegistroArquivoDados));
+      fseek(*dados, sizeof(*registrodados) * no->dados, SEEK_SET);
+      fread(registrodados, sizeof(*registrodados), 1, *dados);
+      if (sugestoes->length != 3) {
+        strcpy(sugestoes->sugestoes[sugestoes->length], palavraCorrente);
+        sugestoes->frequencias[sugestoes->length] = registrodados->frequencia;
+        sugestoes->length++;
+      } else {
+        for (int i = 0; i < sugestoes->length; i++) {
+          if (sugestoes->frequencias[i] < registrodados->frequencia) {
+            strcpy(sugestoes->sugestoes[i], palavraCorrente);
+            sugestoes->frequencias[i] = registrodados->frequencia;
+            break;
+          }
+        }
+      }
+
+      free(registrodados);
+    }
+  }
+
+  if (!estadoPalavraCorrente) {
+    return;
+  }
+
+  int esquerda = no->esquerda;
+  int direita = no->direita;
+
+  if (esquerda != -1) {
+    char novaPalavra[30] = "";
+    strcpy(novaPalavra, palavraCorrente);
+    strncat(novaPalavra, no->letra, 1);
+    if (verificaPossibilidadeDiferencas(novaPalavra, palavraBuscada)) {
+      fseek(*arvore, sizeof(Controle) + esquerda * sizeof(RegistroArquivoArvore), SEEK_SET);
+      fread(no, sizeof(RegistroArquivoArvore), 1, *arvore);
+      processaLetra(arvore, dados, sugestoes, no, novaPalavra, palavraBuscada);
+    }
+  }
+
+  if (direita != -1) {
+    fseek(*arvore, sizeof(Controle) + direita * sizeof(RegistroArquivoArvore), SEEK_SET);
+    fread(no, sizeof(RegistroArquivoArvore), 1, *arvore);
+    processaLetra(arvore, dados, sugestoes, no, palavraCorrente, palavraBuscada);
+  }
+}
+
+Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **arvore, FILE **dados, Controle *c) {
   Sugestoes sugestoes;
   sugestoes.length = 0;
 
@@ -406,37 +462,25 @@ Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **dados, FILE **arvore
   fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
   fread(&raiz, sizeof(raiz), 1, *arvore);
 
-  int length = strlen(palavra);
+  char palavraCorrente[30] = "";
+  processaLetra(arvore, dados, &sugestoes, &raiz, palavraCorrente, palavra);
 
-  int i = 0;
-  RegistroArquivoArvore registro = raiz;
+  int changed = 1;
+  while (changed == 1) {
+    changed = 0;
+    for (int i = 0; i < sugestoes.length - 1; i++) {
+      if (sugestoes.frequencias[i] < sugestoes.frequencias[i + 1]) {
+        int freqAux = sugestoes.frequencias[i];
+        char palavraAux[30];
+        strcpy(palavraAux, sugestoes.sugestoes[i]);
 
-  while (i != length) {
-    if (registro.letra[0] == '*') {
-      break;
-    }
+        sugestoes.frequencias[i] = sugestoes.frequencias[i + 1];
+        strcpy(sugestoes.sugestoes[i], sugestoes.sugestoes[i + 1]);
 
-    if (registro.letra[0] == '=') {
-
-    }
-
-    if (registro.letra[0] == palavra[i]) {
-      if (registro.esquerda == -1) {
-        break;
-      } else {
-        i++;
-        fseek(*arvore, sizeof(*c) + registro.esquerda * sizeof(registro), SEEK_SET);
-        fread(&registro, sizeof(registro), 1, *arvore);
+        sugestoes.frequencias[i + 1] = freqAux;
+        strcpy(sugestoes.sugestoes[i + 1], palavraAux);
+        changed = 1;
       }
-    } else if (registro.letra[0] < palavra[i]) {
-      if (registro.direita == -1) {
-        break;
-      } else {
-        fseek(*arvore, sizeof(*c) + registro.direita * sizeof(registro), SEEK_SET);
-        fread(&registro, sizeof(registro), 1, *arvore);
-      }
-    } else {
-      break;
     }
   }
 
@@ -553,7 +597,7 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
     }
      */
   } else {
-    Sugestoes sugestoesDesc = procuraPossiveisPalavras(palavra, dados, arvore, c);
+    Sugestoes sugestoesDesc = procuraPossiveisPalavras(palavra, arvore, dados, c);
     char sugestoesSaida[100] = "";
     for (int i = 0; i < sugestoesDesc.length; i++) {
       char aux[30] = " ";

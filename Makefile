@@ -17,8 +17,8 @@ run-test-2:
 	rm -f lista.dat
 	gcc manipula.c -o program
 	./program < ./in/2.in > 2-p.out
-	#cmp ./out/2.out 2-p.out
-	#rm 2-p.out
+	cmp ./out/2.out 2-p.out
+	rm 2-p.out
 
 clear:
 	rm -f dados.dat
