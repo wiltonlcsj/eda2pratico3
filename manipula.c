@@ -198,7 +198,7 @@ void cadastraLinha(bool insert, char palavraEntrada[30], FILE **dados, FILE **ar
         RegistroArquivoArvore registroPai;
         fseek(*arvore, sizeof(*c) + pai * sizeof(registroPai), SEEK_SET);
         fread(&registroPai, sizeof(registroPai), 1, *arvore);
-        if(strcmp(direcaoPai, "dir") == 0) {
+        if (strcmp(direcaoPai, "dir") == 0) {
           registroPai.direita = c->proximoArvoreLivre;
         } else {
           registroPai.esquerda = c->proximoArvoreLivre;
@@ -381,10 +381,65 @@ Sugestoes procuraProximasPalavras(char palavra[30], FILE **dados, FILE **arvore,
   return sugestoes;
 }
 
+bool verificaPossibilidadeDiferencas(char palavraCorrente[30], char palavraBuscada[30]) {
+  int length = strlen(palavraCorrente);
+  int erros = 0;
+  for (int i = 0; i < length; i++) {
+    if (palavraCorrente[i] != palavraBuscada[i]) {
+      erros++;
+    }
+
+    if (erros > 1) {
+      break;
+    }
+  }
+
+  return erros <= 1;
+}
+
 Sugestoes procuraPossiveisPalavras(char palavra[30], FILE **dados, FILE **arvore, Controle *c) {
   //TODO implementar busca
   Sugestoes sugestoes;
   sugestoes.length = 0;
+
+  RegistroArquivoArvore raiz;
+  fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
+  fread(&raiz, sizeof(raiz), 1, *arvore);
+
+  int length = strlen(palavra);
+
+  int i = 0;
+  RegistroArquivoArvore registro = raiz;
+
+  while (i != length) {
+    if (registro.letra[0] == '*') {
+      break;
+    }
+
+    if (registro.letra[0] == '=') {
+
+    }
+
+    if (registro.letra[0] == palavra[i]) {
+      if (registro.esquerda == -1) {
+        break;
+      } else {
+        i++;
+        fseek(*arvore, sizeof(*c) + registro.esquerda * sizeof(registro), SEEK_SET);
+        fread(&registro, sizeof(registro), 1, *arvore);
+      }
+    } else if (registro.letra[0] < palavra[i]) {
+      if (registro.direita == -1) {
+        break;
+      } else {
+        fseek(*arvore, sizeof(*c) + registro.direita * sizeof(registro), SEEK_SET);
+        fread(&registro, sizeof(registro), 1, *arvore);
+      }
+    } else {
+      break;
+    }
+  }
+
   return sugestoes;
 }
 
@@ -546,26 +601,27 @@ void consultar(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
   }
 }
 
-void imprimeNo(RegistroArquivoArvore no, FILE **arvore, FILE **dados, Controle *c) {
-  if (no.letra[0] == '=') {
-    RegistroArquivoDados dadosPalavra;
-    fseek(*dados, no.dados * sizeof(dadosPalavra), SEEK_SET);
-    fread(&dadosPalavra, sizeof(dadosPalavra), 1, *dados);
-    printf("%s %d\n", dadosPalavra.palavra, dadosPalavra.frequencia);
+void imprimeNo(RegistroArquivoArvore *no, FILE **arvore, FILE **dados, Controle *c) {
+  if (no->letra[0] == '=') {
+    RegistroArquivoDados *dadosPalavra = malloc(sizeof(RegistroArquivoDados));
+    fseek(*dados, no->dados * sizeof(RegistroArquivoDados), SEEK_SET);
+    fread(dadosPalavra, sizeof(RegistroArquivoDados), 1, *dados);
+    printf("%s %d\n", dadosPalavra->palavra, dadosPalavra->frequencia);
+    free(dadosPalavra);
   }
 
-  if (no.esquerda != -1) {
-    RegistroArquivoArvore novoNo;
-    fseek(*arvore, sizeof(*c) + no.esquerda * sizeof(novoNo), SEEK_SET);
-    fread(&novoNo, sizeof(novoNo), 1, *arvore);
-    imprimeNo(novoNo, arvore, dados, c);
+  int esquerda = no->esquerda;
+  int direita = no->direita;
+  if (esquerda != -1) {
+    fseek(*arvore, sizeof(*c) + esquerda * sizeof(*no), SEEK_SET);
+    fread(no, sizeof(*no), 1, *arvore);
+    imprimeNo(no, arvore, dados, c);
   }
 
-  if (no.direita != -1) {
-    RegistroArquivoArvore novoNo;
-    fseek(*arvore, sizeof(*c) + no.direita * sizeof(novoNo), SEEK_SET);
-    fread(&novoNo, sizeof(novoNo), 1, *arvore);
-    imprimeNo(novoNo, arvore, dados, c);
+  if (direita != -1) {
+    fseek(*arvore, sizeof(*c) + direita * sizeof(*no), SEEK_SET);
+    fread(no, sizeof(*no), 1, *arvore);
+    imprimeNo(no, arvore, dados, c);
   }
 }
 
@@ -573,7 +629,7 @@ void imprimePalavras(FILE **arvore, FILE **dados, Controle *c) {
   RegistroArquivoArvore raiz;
   fseek(*arvore, sizeof(*c) + c->deslocamentoRaiz * sizeof(raiz), SEEK_SET);
   fread(&raiz, sizeof(raiz), 1, *arvore);
-  imprimeNo(raiz, arvore, dados, c);
+  imprimeNo(&raiz, arvore, dados, c);
 }
 
 void frequenciaProximasPalavras(FILE **dados, FILE **arvore, FILE **lista, Controle *c) {
